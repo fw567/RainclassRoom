@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  广东理工学院 长江雨课堂 网课自动化脚本
-// @author       hqzqaq
+// @author       fw567
 // @icon         https://qn-next.xuetangx.com/16758372321856.jpg
 // @grant        GM_getValue
 // @grant        GM_setValue
