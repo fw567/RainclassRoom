@@ -38,7 +38,7 @@
     // 设置视频播放速度
     const speed = () => {
         let keyt = '';
-        if (rate === 2 || rate === 1) {
+        if (rate == 1 || rate == 2) {
             keyt = `[keyt="${rate}.00"]`;
         } else {
             keyt = `[keyt="${rate}"]`;
@@ -126,4 +126,5 @@
         }
         location.reload();
     }, reloadTime * 60 * 1000);
+    speed();//调用speed方法，使播放速度变为2
 })();
