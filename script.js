@@ -17,114 +17,155 @@
 
 (function () {
     "use strict";
-    // 刷新一下页面时间，单位为分钟
+    // 多长时间刷新一下页面，单位为分钟
     const reloadTime = 10;
-    // 倍速，可以分为0.5，1.0，1.25，1.5，2.0,一般默认情况为1
-    const rate = 1;
-    // 查询所有具有 "el-tooltip" 和 "leaf-detail" 两个 CSS 类名的元素
-    const getElTooltipItemList = () => document.querySelectorAll(".el-tooltip.leaf-detail");
-    const getElTooltipList = () => document.querySelectorAll(".el-tooltip.f12.item");
-    // 静音
-    const claim = () => {
-        const volumeButton = document.querySelector("#video-box > div > xt-wrap > xt-controls > xt-inner > xt-volumebutton > xt-icon");
-        volumeButton?.click();
-    };
-    // 点击具有指定类名和选择器的元素
-    const clickElement = (className, selector) => {
-        const mousemove = new MouseEvent("mousemove", { bubbles: true, cancelable: true, view: window });
-        document.querySelector(`.${className}`)?.dispatchEvent(mousemove);
-        document.querySelector(selector)?.click();
-    };
-    // 设置视频播放速度
-    const speed = () => {
-        let keyt = '';
-        if (rate == 1 || rate == 2) {
-            keyt = `[keyt="${rate}.00"]`;
-        } else {
-            keyt = `[keyt="${rate}"]`;
+    // 视频播放速率,可选值 [1,1.25,1.5,2],默认为二倍速
+    const rate = 2;
+
+    window.onload = function () {
+        // 网课页面跳转
+        function getElTooltipItemList() {
+            return document.getElementsByClassName("el-tooltip leaf-detail");
         }
-        clickElement("xt_video_player_speed", keyt);
-    };
-    // 定时器，查询元素并操作
-    const getElementInterval = setInterval(() => {
-        const elTooltipList = getElTooltipList();
-        const elTooltipItemList = getElTooltipItemList();
-        // 如果查询到了元素
-        if (elTooltipList.length) {
-            for (const [index, element] of elTooltipList.entries()) {
-                const textContent = element.textContent;
-                // 如果视频未开始或未读
-                if (textContent === "未开始" || textContent === "未读") {
-                    // 如果是习题、作业或已过期，则跳过
-                    if (elTooltipItemList[index].innerText.includes('习题') || elTooltipItemList[index].innerText.includes('作业') || elTooltipItemList[index].children[1].children[0].innerText.includes("已过")) {
-                        continue;
+
+        function getElTooltipList() {
+            return document.getElementsByClassName("el-tooltip f12 item");
+        }
+
+  //静音
+      function claim() {
+  document.querySelector(".xt_video_player_common_icon").click();
+  document.querySelector("video").muted = true;
+  if (typeof player !== "undefined") {
+    player.video.muted = true;
+  }
+}
+
+    function fun(className, selector)
+        {
+            var mousemove = document.createEvent("MouseEvent");
+            mousemove.initMouseEvent("mousemove", true, true, unsafeWindow, 0, 10, 10, 10, 10, 0, 0, 0, 0, 0, null);
+            document.getElementsByClassName(className)[0].dispatchEvent(mousemove);
+            document.querySelector(selector).click();
+        }
+
+        //加速
+        function speed() {
+            let keyt = '';
+            if(rate === 1 || rate === 2){
+                keyt = "[keyt='" + rate + ".00']"
+            }else{
+                keyt = "[keyt='" + rate + "']"
+            }
+            fun("xt_video_player_speed", keyt);
+        }
+
+        const getElementInterval = setInterval(function () {
+            const elTooltipList = getElTooltipList();
+            const elTooltipItemList = getElTooltipItemList();
+            if (elTooltipList) {
+                for (let index = 0; index < elTooltipList.length; index++) {
+                    const element = elTooltipList[index];
+                    const textContent = element.textContent;
+                    //const textContent = ''
+                    if (textContent === "未开始" || textContent === "未读") {
+                        // 判断是否是习题
+                        if(elTooltipItemList[index].innerText.indexOf('习题')!= -1){
+                            continue;
+                        }
+                        // 判断是否已过学习时间
+                        if (elTooltipItemList[index].children[1].children[0].innerText.indexOf("已过") != -1) {
+                            continue;
+                        }
+                        window.clearInterval(getElementInterval);
+                        GM_setValue("rowUrl", window.location.href.toString());
+                        // 网课页面跳转
+                        elTooltipItemList[index].click();
+                        window.close();
+                        break;
                     }
-                    // 停止查询元素
-                    clearInterval(getElementInterval);
-                    // 保存当前网页地址
-                    GM_setValue("rowUrl", window.location.href);
-                    // 点击视频并关闭窗口
-                    elTooltipItemList[index].click();
-                    window.close();
-                    break;
                 }
             }
-        }
-    }, 1000);
-    let video;
-    // 定时器，查询视频并操作
-    const videoPlay = setInterval(() => {
-        video = document.querySelector(".xt_video_player");
-        if (!video) {
-            return;
-        }
-        // 延迟5秒设置视频播放速度
-        setTimeout(() => speed(), 5000);
-        // 静音
-        claim();
-        // 停止查询视频
-        clearInterval(videoPlay);
-    }, 500);
-    // 定时器，查询视频播放状态并操作
-    const playTimeOut = setInterval(() => {
-        // 播放视频
-        video?.play();
-        // 如果音量不为0，则静音
-        if (video?.volume !== 0) {
+        }, 1000);
+
+        let video;
+        const videoPlay = setInterval(function () {
+            // 获取播放器
+            video = document.getElementsByClassName("xt_video_player")[0];
+            if (!video) {
+                return;
+            }
+            setTimeout(function () {
+                // 视频开始5s之后再开启倍速
+                speed()
+            },5000);
             claim();
-        }
-        // 查询视频播放进度
-        const completeness = document.querySelector("#app > div.app-wrapper > div.wrap > div.viewContainer.heightAbsolutely > div > div.video-wrap > div > div > section.title > div.title-fr > div > div > span");
-        const videoText = completeness?.innerHTML;
-        if (videoText) {
-            const succ = videoText.substring(4, videoText.length - 1);
-            const succNum = parseInt(succ);
-            // 如果播放进度超过95%，则跳转到保存的网页地址
-            if (succNum >= 95) {
-                const url = GM_getValue("rowUrl");
-                if (url) {
-                    clearInterval(playTimeOut);
-                    window.location.replace(url);
+            window.clearInterval(videoPlay);
+        }, 500);
+
+        // 是否播放完成的检测
+        const playTimeOut = setInterval(function () {
+            if (!video) {
+                return;
+            }
+            video.play();
+
+            // 没有静音
+            if (video.volume != 0) {
+                claim();
+            }
+            const completeness = $(
+                "#app > div.app-wrapper > div.wrap > div.viewContainer.heightAbsolutely > div > div.video-wrap > div > div > section.title > div.title-fr > div > div > span"
+            );
+            if (!completeness) {
+                return;
+            }
+            if (typeof completeness[0] == "undefined") {
+                return;
+            }
+            const videoText = completeness[0].innerHTML
+            if (videoText) {
+                let str = videoText.toString();
+                const succ = str.substring(4, str.length - 1);
+                const succNum = parseInt(succ);
+                if (succ >= 95) {
+                    const url = GM_getValue("rowUrl");
+                    if(url){
+                        window.clearInterval(playTimeOut);
+                        window.location.replace(url);
+                    }
                 }
             }
-        }
-    }, 1000);
-    // 定时器，查询阅读状态并进行操作
-    const readInterval = setInterval(() => {
-        const read = document.querySelector("#app > div.app-wrapper > div.wrap > div.viewContainer.heightAbsolutely > div > div.graph-wrap > div > div > section.title > div.title-fr > div > div");
-        const readText = read?.innerHTML;
-        // 如果阅读状态为"已读"，则跳转到保存的网页地址
-        if (readText && readText.toString() === '已读') {
-            clearInterval(readInterval);
-            window.location.replace(GM_getValue("rowUrl"));
-        }
-    }, 1000);
-    // 延迟一定时间后，如果有保存的网页地址，则跳转到该地址，否则刷新当前页面
-    setTimeout(() => {
-        if (GM_getValue("rowUrl")) {
-            window.location.replace(GM_getValue("rowUrl"));
-        }
-        location.reload();
-    }, reloadTime * 60 * 1000);
-    speed();//调用speed方法，使播放速度变为2
+
+        }, 1000);
+
+        // 是否为阅读类型
+        const readInterval = setInterval(function () {
+            const read = $(
+                "#app > div.app-wrapper > div.wrap > div.viewContainer.heightAbsolutely > div > div.graph-wrap > div > div > section.title > div.title-fr > div > div"
+            );
+            if(!read){
+                return
+            }
+            if (typeof read[0] == "undefined") {
+                return;
+            }
+            const readText = read[0].innerHTML
+            if(readText){
+                if(readText.toString() === '已读'){
+                    window.clearInterval(readInterval);
+                    window.location.replace(GM_getValue("rowUrl"));
+                }
+            }
+        }, 1000);
+
+        // 为了防止页面假死，定时刷新一下页面
+        setTimeout(function () {
+            // 如果保存了课程列表路径就回退课程列表页面
+            if(GM_getValue("rowUrl")){
+                window.location.replace(GM_getValue("rowUrl"));
+            }
+            location.reload()
+        },reloadTime * 60 * 1000);
+    };
 })();
